@@ -8,25 +8,31 @@
 #define in2 19
 #define opto 21
 
-#define reverseButton 2
+#define photoSensor 2
 
-int sampleCount = 5;
+bool rotation = false;
+int rotationCount = 0;
+int rotationMax = 10;
 
 #define pot A0
-#define shunt A3
-int currentMax = 600;
-int currentMin = 0;
+
 int reverseTime = 2000;
 
 bool jammed = false;
 int reverseSpeed = 35;
+
+void rotationSet(){ // if the photoSensor was triggered then set the rotation flag
+  rotation = true;
+  Serial.println("* Pulse!");
+}
 
 void setup() {
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
 
-  pinMode(reverseButton, INPUT_PULLUP);
+  pinMode(photoSensor, INPUT);
+  attachInterrupt(0, rotationSet, FALLING);
 
   analogReference(INTERNAL);
 
@@ -34,11 +40,7 @@ void setup() {
   digitalWrite(in1, LOW);
   digitalWrite(in2, HIGH);
   Serial.begin(9600); // open the serial port at 9600 bps:
-  
-  //stuff for testing 
-//  digitalWrite(in1, HIGH);
-//  digitalWrite(in2, LOW);
-//  analogWrite(enA, 128); // Send PWM signal to L298N Enable pin
+
 }
 
 void loop() {
@@ -50,24 +52,20 @@ void loop() {
 
   // check for a jammed case
 
-  for (int i = 0; i <= sampleCount; i++){
-    currentValue = currentValue + analogRead(shunt); // Read the current shunt value
-    delay(5);
+  if (rotation) {
+    rotation = false;
+    rotationCount = 0;
+  } else  {
+    rotationCount++;
   }
-  currentValue = currentValue / sampleCount;
-  if ((currentValue > currentMax) or (currentValue < currentMin)) {
-    delay(100);
-    currentValue = analogRead(shunt); // Read the current shunt value
-    if ((currentValue > currentMax) or (currentValue < currentMin)) {
+  if (rotationCount > rotationMax) {
     jammed = true;
-  }}
-
-  jammed = digitalRead(reverseButton);
-      
+    rotationCount = 0;
+  }
+        
   Serial.print("jammed: ");
   Serial.print(jammed);
-  Serial.print(" currentValue: ");
-  Serial.print(currentValue);
+
   Serial.print("   potValue: ");
   Serial.println(potValue);
 
